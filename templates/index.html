@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Editor de Texto Local</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter&display=swap');
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      color: #fff;
+    }
+
+    .container {
+      background: #1e1e2f;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+      max-width: 700px;
+      width: 100%;
+      padding: 30px;
+      box-sizing: border-box;
+    }
+
+    h1 {
+      margin: 0 0 20px;
+      font-weight: 700;
+      font-size: 2rem;
+      text-align: center;
+      letter-spacing: 1.2px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #a3a3c2;
+    }
+
+    input[type="file"] {
+      display: block;
+      margin-bottom: 20px;
+      color: #ddd;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 12px 15px;
+      border-radius: 8px;
+      border: none;
+      margin-bottom: 15px;
+      font-size: 1rem;
+      box-sizing: border-box;
+      background: #2c2c45;
+      color: #eee;
+      transition: background 0.3s ease;
+    }
+
+    input[type="text"]:focus {
+      background: #3f3f6e;
+      outline: none;
+      box-shadow: 0 0 5px #667eea;
+    }
+
+    textarea {
+      width: 100%;
+      height: 320px;
+      border-radius: 12px;
+      border: none;
+      padding: 20px;
+      font-size: 1rem;
+      resize: vertical;
+      box-sizing: border-box;
+      background: #2c2c45;
+      color: #eee;
+      box-shadow: inset 0 0 8px #3f3f6e;
+      font-family: 'Consolas', monospace;
+      transition: background 0.3s ease;
+      margin-bottom: 10px;
+    }
+
+    textarea:focus {
+      background: #3f3f6e;
+      outline: none;
+      box-shadow: 0 0 10px #667eea;
+    }
+
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 25px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: background 0.3s ease;
+      width: 100%;
+      user-select: none;
+      margin-bottom: 15px;
+    }
+
+    button:hover {
+      background: #5563c1;
+    }
+
+    .descarga {
+      background: #38c172;
+    }
+
+    .descarga:hover {
+      background: #2f9e6e;
+    }
+
+    .resultado {
+      margin-top: 5px;
+      font-weight: 600;
+      text-align: center;
+      min-height: 24px;
+      color: #a3d8f4;
+      user-select: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>📝 Editor de Texto</h1>
+
+    <label for="archivoLocal">📂 Abrir archivo desde tu PC:</label>
+    <input type="file" id="archivoLocal" accept=".txt" />
+
+    <input type="text" id="nombreArchivo" placeholder="escriba aqui el nombre que quiere que tenga su archivo" />
+
+    <textarea id="editor" placeholder="Escribe el texto aqui..."></textarea>
+
+    <button id="guardarArchivo">💾 Guardar texto (elige dónde)</button>
+    <button id="guardarDescargaBtn" class="descarga">⬇️ Descargar archivo .txt</button>
+
+    <div class="resultado" id="mensaje"></div>
+  </div>
+
+  <script>
+    const archivoLocal = document.getElementById('archivoLocal');
+    const editor = document.getElementById('editor');
+    const nombreArchivo = document.getElementById('nombreArchivo');
+    const mensaje = document.getElementById('mensaje');
+    const guardarBtn = document.getElementById('guardarArchivo');
+    const guardarDescargaBtn = document.getElementById('guardarDescargaBtn');
+
+    // Mostrar solo el botón compatible
+    if ('showSaveFilePicker' in window) {
+      guardarDescargaBtn.style.display = 'none';
+    } else {
+      guardarBtn.style.display = 'none';
+    }
+
+    // Abrir archivo local
+    archivoLocal.addEventListener('change', () => {
+      const archivo = archivoLocal.files[0];
+      if (!archivo) return;
+
+      const lector = new FileReader();
+      lector.onload = e => {
+        editor.value = e.target.result;
+        nombreArchivo.value = archivo.name;
+        mensaje.textContent = `📂 Archivo '${archivo.name}' abierto correctamente.`;
+      };
+      lector.readAsText(archivo);
+    });
+
+    // Guardar con showSaveFilePicker
+    guardarBtn.addEventListener('click', async () => {
+      try {
+        let nombre = nombreArchivo.value.trim();
+        if (!nombre) {
+          mensaje.textContent = '❌ Escribe un nombre para el archivo.';
+          return;
+        }
+        if (!nombre.endsWith('.txt')) nombre += '.txt';
+
+        const opciones = {
+          suggestedName: nombre,
+          types: [{
+            description: 'Archivos de texto',
+            accept: {'text/plain': ['.txt']},
+          }],
+        };
+
+        const handle = await window.showSaveFilePicker(opciones);
+        const writable = await handle.createWritable();
+        await writable.write(editor.value);
+        await writable.close();
+
+        mensaje.textContent = `✅ Archivo guardado en la ubicación que elegiste.`;
+      } catch (error) {
+        if (error.name === 'AbortError') {
+          mensaje.textContent = '❌ Guardado cancelado.';
+        } else {
+          mensaje.textContent = '❌ Error al guardar: ' + error.message;
+        }
+      }
+    });
+
+    // Guardar con descarga clásica
+    guardarDescargaBtn.addEventListener('click', () => {
+      let nombre = nombreArchivo.value.trim();
+      if (!nombre) {
+        mensaje.textContent = '❌ Escribe un nombre para el archivo.';
+        return;
+      }
+      if (!nombre.endsWith('.txt')) nombre += '.txt';
+
+      const blob = new Blob([editor.value], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const enlace = document.createElement('a');
+      enlace.href = url;
+      enlace.download = nombre;
+      enlace.click();
+      URL.revokeObjectURL(url);
+
+      mensaje.textContent = `✅ Archivo descargado correctamente.`;
+    });
+  </script>
+
+</body>
+</html>
